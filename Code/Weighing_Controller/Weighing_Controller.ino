@@ -31,12 +31,12 @@ void setup() {
   scale1.begin(4, 5); // ，第二个为时钟信号输入。
   scale2.begin(6, 7);
   scale3.begin(16, 10);
-  init_weighing();
+  init_weighing();  // 初始化校准称重值
 
-  //  Joystick.setXAxisRange(0, 65535); // 设定各轴的输出范围为0到65535
-  //  Joystick.setYAxisRange(0, 65535);
-  //  Joystick.setZAxisRange(0, 65535);
-  //  Joystick.setRxAxisRange(0, 65535);
+  //  Joystick.setXAxisRange(-32768, 32767); // 设定各轴的输出范围为-32768到32767
+  //  Joystick.setYAxisRange(-32768, 32767);
+  //  Joystick.setZAxisRange(-32768, 32767);
+  //  Joystick.setRxAxisRange(-32768, 32767);
   //  Joystick.begin(false); // 开始模拟joystick，关闭自动报告
 }
 
@@ -81,11 +81,12 @@ void loop() {
   {
     w3 = w3_min;
   }
-  
-  a0 = (w0 - w0_min)/w0_rang*100;
-  a1 = (w1 - w1_min)/w1_rang*100;
-  a2 = (w2 - w2_min)/w2_rang*100;
-  a3 = (w3 - w3_min)/w3_rang*100;
+
+  // 计算各轴模拟值
+  a0 = (w0 - w0_min)/w0_rang*65535-32768;
+  a1 = (w1 - w1_min)/w1_rang*65535-32768;
+  a2 = (w2 - w2_min)/w2_rang*65535-32768;
+  a3 = (w3 - w3_min)/w3_rang*65535-32768;
   
   Serial.print("axis0: ");
   Serial.print(a0);
@@ -170,6 +171,8 @@ void init_weighing() {
   w1_rang = w1_max - w1_min;
   w2_rang = w2_max - w2_min;
   w3_rang = w3_max - w3_min;
+
+  
 
   Serial.print("scale0.range: ");
   Serial.print(w0_rang);
