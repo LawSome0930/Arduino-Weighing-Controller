@@ -6,12 +6,13 @@ HX711 scale1;
 HX711 scale2;
 HX711 scale3;
 
-float w0, w1, w2, w3 = 0; // 称重传感实时值
-float w0_min, w1_min, w2_min, w3_min = 0; // 称重最小值
-float w0_max, w1_max, w2_max, w3_max = 0; // 称重最大值
-float w0_rang, w1_rang, w2_rang, w3_rang = 0; // 测量范围
+float w[]={0, 0, 0 ,0}; // 实时称重值
+float w_min[]={0, 0, 0 ,0}; // 空载称重初始值
+float w_max[]={0, 0, 0 ,0}; // 称重最大值
+float w_range[]={0, 0, 0 ,0}; // 测量范围
 int init_finish = 0; // 初始化完成标志
-int16_t a0, a1, a2, a3 = 0;
+int16_t axis[] = {0, 0 , 0, 0}; // joystick模拟轴各轴的值
+
 Joystick_ Joystick(
   JOYSTICK_DEFAULT_REPORT_ID, JOYSTICK_TYPE_JOYSTICK,
   false, false,        // 0个按键，0个苦力帽
@@ -38,70 +39,51 @@ void setup() {
   //  Joystick.setZAxisRange(-32768, 32767);
   //  Joystick.setRxAxisRange(-32768, 32767);
   //  Joystick.begin(false); // 开始模拟joystick，关闭自动报告
+  Serial.print("Joystick begin"); // 开始模拟joystick，关闭自动报告
 }
 
 // 循环程序
 void loop() {
 
-  w0 = scale0.get_units();  // 获取当前称重值
-  w1 = scale1.get_units();
-  w2 = scale2.get_units();
-  w3 = scale3.get_units();
+  w[0] = scale0.get_units();  // 获取当前称重值
+  w[1] = scale1.get_units();
+  w[2] = scale2.get_units();
+  w[3] = scale3.get_units();
 
   // 饱和限幅
-  if(w0 > w0_max)
+  for(int i=0;i<4;i++)
   {
-    w0 = w0_max;
-  }
-  if(w0 < w0_min)
-  {
-    w0 = w0_min;
-  }
-  if(w1 > w1_max)
-  {
-    w1 = w1_max;
-  }
-  if(w1 < w1_min)
-  {
-    w1 = w1_min;
-  }
-  if(w2 > w2_max)
-  {
-    w2 = w2_max;
-  }
-  if(w2 < w2_min)
-  {
-    w2 = w2_min;
-  }
-  if(w3 > w3_max)
-  {
-    w3 = w3_max;
-  }
-  if(w3 < w3_min)
-  {
-    w3 = w3_min;
+    if(w[i] > w_max[i])
+    {
+      w[i] = w_max[i];
+    }
+    if(w[i] < w_min[i])
+    {
+      w[i] = w_min[i];
+    }
   }
 
   // 计算各轴模拟值
-  a0 = (w0 - w0_min)/w0_rang*65535-32768;
-  a1 = (w1 - w1_min)/w1_rang*65535-32768;
-  a2 = (w2 - w2_min)/w2_rang*65535-32768;
-  a3 = (w3 - w3_min)/w3_rang*65535-32768;
+  for(int i=0;i<4;i++)
+  {
+    axis[i] = (w[i] - w_min[i])/w_range[i]*65535-32768;
+  }
+  
   
   Serial.print("axis0: ");
-  Serial.print(a0);
+  Serial.print(axis[0]);
   Serial.print("\n");
 
   Serial.print("axis1: ");
-  Serial.print(a1);
+  Serial.print(axis[1]);
   Serial.print("\n");
 
   Serial.print("axis2: ");
-  Serial.print(a2);
+  Serial.print(axis[2]);
   Serial.print("\n");
 
   Serial.print("axis3: ");
-  Serial.print(a3);
+  Serial.print(axis[3]);
   Serial.print("\n");
   delay(500);
   // Joystick.sendState();
@@ -110,56 +92,53 @@ void loop() {
 /*******称重初始化，校准称重值范围********/
 void init_weighing() {
   delay(5000);
-  w0_min = scale0.get_units();  // 获取空载下的称重初始值
-  w1_min = scale1.get_units();
-  w2_min = scale2.get_units();
-  w3_min = scale3.get_units();
+  float w_tmp[]={0, 0, 0 ,0};
+  w_min[0] = scale0.get_units();  // 获取空载下的称重初始值
+  w_min[1] = scale1.get_units();
+  w_min[2] = scale2.get_units();
+  w_min[3] = scale3.get_units();
 
-  w0_max = w0_min;
-  w1_max = w0_min;
-  w2_max = w0_min;
-  w3_max = w0_min;
+  for(int i=0;i<4;i++)
+  { 
+    w_max[i] = w_min[i];  // 给最大值赋予初值
+  }
 
   Serial.print("scale0.init: ");
-  Serial.print(w0_min);
+  Serial.print(w_min[0]);
   Serial.print("\n");
 
   Serial.print("scale1.init: ");
-  Serial.print(w1_min);
+  Serial.print(w_min[1]);
   Serial.print("\n");
 
   Serial.print("scale2.init: ");
-  Serial.print(w2_min);
+  Serial.print(w_min[2]);
   Serial.print("\n");
 
   Serial.print("scale3.init: ");
-  Serial.print(w3_min);
+  Serial.print(w_min[3]);
   Serial.print("\n");
 
+  Serial.print("请将踏板踩至最大行程, 输入数字1确认\n");
+
+  // 等待用户获得最大行程
   while (init_finish == 0)
   {
-    float w0_tmp = scale0.get_units();
-    float w1_tmp = scale1.get_units();
-    float w2_tmp = scale2.get_units();
-    float w3_tmp = scale3.get_units();
 
-    if (w0_tmp > w0_max)  // 记录称重最大值
+    w_tmp[0] = scale0.get_units();
+    w_tmp[1] = scale1.get_units();
+    w_tmp[2] = scale2.get_units();
+    w_tmp[3] = scale3.get_units();
+
+    for(int i=0;i<4;i++)  // 记录称重最大值
     {
-      w0_max = w0_tmp;
-    }
-    if (w1_tmp > w1_max)
-    {
-      w1_max = w1_tmp;
-    }
-    if (w2_tmp > w2_max)
-    {
-      w2_max = w2_tmp;
-    }
-    if (w3_tmp > w3_max)
-    {
-      w3_max = w3_tmp;
+      if(w_tmp[i] > w_max[i])
+      {
+        w_max[i] = w_tmp[i];
+      }
     }
 
+    // 用户踩完后，输入数字1确认
     char ans = Serial.read();
     if (ans == '1')
     {
@@ -167,24 +146,22 @@ void init_weighing() {
     }
   }
 
-  w0_rang = w0_max - w0_min;
-  w1_rang = w1_max - w1_min;
-  w2_rang = w2_max - w2_min;
-  w3_rang = w3_max - w3_min;
-
-  
+  for(int i=0;i<4;i++)
+  {
+    w_range[i] = w_max[i] - w_min[i];
+  }
 
   Serial.print("scale0.range: ");
-  Serial.print(w0_rang);
+  Serial.print(w_range[0]);
   Serial.print("\n");
   Serial.print("scale1.range: ");
-  Serial.print(w1_rang);
+  Serial.print(w_range[1]);
   Serial.print("\n");
   Serial.print("scale2.range: ");
-  Serial.print(w2_rang);
+  Serial.print(w_range[2]);
   Serial.print("\n");
   Serial.print("scale3.range: ");
-  Serial.print(w3_rang);
+  Serial.print(w_range[3]);
   Serial.print("\n");
   Serial.print("init finish\n");
   delay(5000);
